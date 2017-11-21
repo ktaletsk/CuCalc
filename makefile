@@ -5,5 +5,7 @@ run:
 start:
 	sudo docker start cucalc
 stop:
-	sudo docker cucalc
+	sudo docker stop cucalc
+rm:
+	sudo docker rm cucalc
 

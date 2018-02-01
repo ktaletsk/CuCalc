@@ -64,11 +64,17 @@ ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 ENV NVIDIA_REQUIRE_CUDA "cuda>=9.1"
 
 #Install CuDNN (using this hack since CuDNN does not support 17.04)
-RUN wget "http://files.fast.ai/files/cudnn.tgz" -O "cudnn.tgz" && \
-    tar -zxf cudnn.tgz && \
-    cd cuda && \
-    sudo cp lib64/* /usr/local/cuda/lib64/ && \
-    sudo cp include/* /usr/local/cuda/include/
+ENV CUDNN_VERSION 7.0.5.15
+LABEL com.nvidia.cudnn.version="${CUDNN_VERSION}"
+
+RUN wget "http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64/libcudnn7_7.0.5.15-1+cuda9.1_amd64.deb" -O "cudnn.deb" && \
+    wget "http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64/libcudnn7-dev_7.0.5.15-1+cuda9.1_amd64.deb" -O "cudnndev.deb" && \
+    dpkg -i cudnn.deb && \
+    cp /usr/lib/x86_64-linux-gnu/libcudnn* /usr/local/cuda/lib64 && \
+    rm cudnn.deb && \
+    dpkg -i cudnndev.deb && \
+    cp /usr/include/x86_64-linux-gnu/cudnn_v7.h /usr/local/cuda/include/cudnn.h && \
+    rm cudnndev.deb
 
 #Install CUDA path variables
 RUN echo "/usr/local/cuda/lib64" >> /etc/ld.so.conf.d/cuda.conf && \
@@ -79,15 +85,17 @@ ENV PATH /usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
 ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64
 
 #Install Anaconda
-
 RUN echo 'export PATH=/opt/conda/bin:$PATH' > /etc/profile.d/conda.sh && \
     wget --quiet https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O ~/anaconda.sh && \
     /bin/bash ~/anaconda.sh -b -p /opt/conda && \
     rm ~/anaconda.sh
 
-#Install Theano, Keras and PyTorch
-RUN /opt/conda/bin/conda install -y ipykernel matplotlib pydot-ng theano pygpu bcolz paramiko keras && \
-    /opt/conda/bin/conda install pytorch torchvision -c pytorch
+#Install Python packages (incl. Theano, Keras and PyTorch)
+RUN /opt/conda/bin/conda install pytorch torchvision -c pytorch && \
+    /opt/conda/bin/conda install -c menpo opencv3 && \
+    /opt/conda/bin/conda install -y ipykernel matplotlib pydot-ng theano pygpu bcolz paramiko keras seaborn graphviz scikit-learn
+
+#RUN /opt/conda/bin/conda install -c calex sklearn-pandas
 
 ENV PATH /opt/conda/bin:${PATH}
 ENV PATH /usr/local/cuda-9.1/bin:${PATH}
